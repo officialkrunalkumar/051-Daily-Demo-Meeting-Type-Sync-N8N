@@ -1,0 +1,445 @@
+{
+  "name": "Daily Demo Meeting Type Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "outputFieldName": "today",
+        "options": {}
+      },
+      "id": "a3e04a3b-cd3b-49f2-a186-d29fa68685c1",
+      "name": "Today",
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "id": "68013e7f-06d9-4b47-b71f-71d4aac055c5",
+      "name": "Split Meetings",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        400,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "id",
+        "options": {}
+      },
+      "id": "2b4ec820-e2b6-4b5f-a370-8bc7d5f749c6",
+      "name": "Split IDs",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        840,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d58ebd63-64da-446c-8abd-fe119ef57286",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1080,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/2-39538272/search?properties=hs_object_id",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "hubspotAppToken",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filterGroups\":[{\"filters\":[{\"propertyName\":\"meeting_title\",\"value\":\"{{ $json.id }}\",\"operator\":\"EQ\"}]}]\n}",
+        "options": {}
+      },
+      "id": "20d9f62e-c2f5-4692-a17f-525234cc74fc",
+      "name": "Check Demo Meeting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        440
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "XAN2EAun4Xi7kKU6",
+          "name": "Krunal: HubSpot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9ddbbbf1-104e-41cd-8c86-de7960343b28",
+              "leftValue": "={{ $json.total }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "57684846-6fbb-4609-bced-1902c15132d8",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 0.2
+      },
+      "id": "3cd25282-6aeb-4d5a-8cdf-179171492e4f",
+      "name": "Not Found Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1940,
+        140
+      ],
+      "webhookId": "6a7895ba-7488-4205-a99c-007d73cdb2c4"
+    },
+    {
+      "parameters": {
+        "amount": 0.2
+      },
+      "id": "e91e540b-7e3b-4378-a56d-96892d44a151",
+      "name": "Found Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1860,
+        660
+      ],
+      "webhookId": "b8560695-9418-4633-8e2c-59ae000fc5a9"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "70157e4b-f6ad-4302-b87f-f4d8f4f3838d",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "b9cce94c-a291-4a05-a10f-64fd8e2cad26",
+              "name": "type",
+              "value": "={{ $json.properties.hs_activity_type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "245cf131-fe3d-428b-927d-c96608a6b87b",
+      "name": "Set ID & Type",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        620,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/meetings/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "hubspotAppToken",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filters\": [\n    {\n      \"propertyName\": \"hs_timestamp\",\n      \"operator\": \"GTE\",\n      \"value\": \"{{ $json.yesterday }}\"\n    },\n    {\n      \"propertyName\": \"hs_timestamp\",\n      \"operator\": \"LTE\",\n      \"value\": \"{{ $('Today').item.json.today }}\"\n    },\n    {\n      \"propertyName\": \"hs_activity_type\",\n      \"operator\": \"IN\",\n      \"values\": [\"Zeni Overview - Accounts\", \"Zeni Overview - Bill Pay\", \"Zeni Overview - Customer Referral\", \"Zeni Overview - Customer Referral AE Self Set\", \"Zeni Overview - Employee Referral\", \"Zeni Overview - Events\", \"Zeni Overview - Events AE\", \"Zeni Overview - Events BDR\", \"Zeni Overview - Events Partnerships\", \"Zeni Overview - Inbound\", \"Zeni Overview - Inbound Partnerships\", \"Zeni Overview - Inbound VC Referral\", \"Zeni Overview - Outbound AE\", \"Zeni Overview - Outbound BDR\", \"Zeni Overview - Partnerships\", \"Zeni Overview - Partnerships AE Self Set\", \"Zeni Overview - Reimbursements\", \"Zeni Overview - VC Referral\", \"Zeni Overview - Venture Capitalist\"]\n    }\n  ],\n  \"properties\": [\"hs_activity_type\", \"hs_timestamp\"],\n  \"limit\": 200\n} ",
+        "options": {
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "type": "body",
+                    "name": "after",
+                    "value": "={{ $response.body.paging.next.after }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.paging.next.after }}"
+            }
+          }
+        }
+      },
+      "id": "1bc9daa8-4991-4b0b-a6a1-a332a371bd54",
+      "name": "Search Meetings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        420
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "XAN2EAun4Xi7kKU6",
+          "name": "Krunal: HubSpot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "id": "b4bc1cfa-6061-418f-811c-8a7d0e976265",
+      "name": "Daily",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -480,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "addToDate",
+        "magnitude": "={{ $('Today').item.json.today }}",
+        "duration": -1,
+        "outputFieldName": "yesterday",
+        "options": {}
+      },
+      "id": "5f917122-16df-4eb8-8fd0-34ba15214132",
+      "name": "Yesterday",
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.hubapi.com/crm/v3/objects/2-39538272/{{ $json.results[0].id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "hubspotAppToken",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"properties\" : {\n  \"meeting_type\": \"{{ $('Set ID & Type').item.json.type }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "25cd5b58-7ea7-4b85-9902-0c3c23b99051",
+      "name": "Update Demo Meeting Type",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2100,
+        660
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "XAN2EAun4Xi7kKU6",
+          "name": "Krunal: HubSpot Token"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Today": {
+      "main": [
+        [
+          {
+            "node": "Yesterday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Meetings": {
+      "main": [
+        [
+          {
+            "node": "Set ID & Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split IDs": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Check Demo Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Demo Meeting": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Not Found Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Found Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not Found Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Found Wait": {
+      "main": [
+        [
+          {
+            "node": "Update Demo Meeting Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set ID & Type": {
+      "main": [
+        [
+          {
+            "node": "Split IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Meetings": {
+      "main": [
+        [
+          {
+            "node": "Split Meetings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily": {
+      "main": [
+        [
+          {
+            "node": "Today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yesterday": {
+      "main": [
+        [
+          {
+            "node": "Search Meetings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Demo Meeting Type": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "36a36c72-3439-4e3d-a479-419e34cb7539",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f35844c20bd7f8456f907e3b5a901af1cf08cec7fee985138953357fd244e5bd"
+  },
+  "id": "VCLXFTaOWxKMX5dZ",
+  "tags": []
+}
